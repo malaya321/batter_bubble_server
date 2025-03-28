@@ -1,42 +1,70 @@
-// src/app/app.js
 const express = require("express");
 const dotenv = require("dotenv");
 const morgan = require("morgan");
-const helmet = require('helmet');
-const mysql = require('mysql2/promise');
-const db = require('./src/db/db');
-const cors = require('cors');
-const app = express();
+const helmet = require("helmet");
+const cors = require("cors");
+const rateLimit = require("express-rate-limit");
+const xss = require("xss-clean");
+const hpp = require("hpp");
+const cookieParser = require("cookie-parser");
+const path = require("path");
+const pool = require("./src/config/db");
+
+// Load environment variables
 dotenv.config();
-const productRoutes = require('./src/routes/ProductRouter/productRoutes');
-const authRouters = require('./src/routes/AuthRouter/Auth');
-const cartRouter = require('./src/routes/CartRouter/cartRouter')
-app.use(express.static('public'))
 
-// Add middleware
-app.use(cors({ origin: 'http://localhost:5174' }));
-// http://localhost:5173
-app.use(express.json());
-app.use(morgan("common"));
+const app = express();
+
+// Middleware
 app.use(helmet());
+app.use(xss());
+app.use(hpp());
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use('/products', productRoutes);
-app.use('/auth',authRouters);
-app.use('/cart',cartRouter);
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 100,
+  message: "Too many requests from this IP, please try again later.",
+});
+app.use("/api", limiter);
 
-app.get("/", async (req, res) => {
-    try {
-        let result = await db.execute('SELECT * FROM ecommerceshop.posts');
-        // console.log(result, 'sssss');
-        res.send(result);
-    } catch (error) {
-        console.error("Error fetching products:", error);
-        res.status(500).send("Error fetching products");
-    }
+// CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true,
+};
+app.use(cors(corsOptions));
+
+// Logger
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+} else {
+  app.use(morgan("combined"));
+}
+
+// ✅ Import and use the auth router
+const authRouter = require("./src/routes/authRoutes");
+app.use("/api/v1/auth", authRouter);
+
+// Health check
+app.get("/api/v1/health", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "API is running smoothly",
+    timestamp: new Date().toISOString(),
+  });
 });
 
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ message: "Resource not found" });
+});
 
+// Start server
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
-    console.log(`App is running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
 });
