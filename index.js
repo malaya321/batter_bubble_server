@@ -10,6 +10,7 @@ const cookieParser = require("cookie-parser");
 const path = require("path");
 const pool = require("./src/config/db");
 
+
 // Load environment variables
 dotenv.config();
 
@@ -61,6 +62,10 @@ if (process.env.NODE_ENV === "development") {
 // ✅ Routes
 const authRouter = require("./src/routes/authRoutes");
 app.use("/api/v1/auth", authRouter);
+
+const userRoutes = require("./src/routes/userRoutes");
+app.use("/api/users", userRoutes);
+
 
 // ✅ Health check route
 app.get("/api/v1/health", (req, res) => {

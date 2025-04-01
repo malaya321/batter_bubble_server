@@ -62,9 +62,33 @@ const verifyUser = async (email, password) => {
       throw error;
     }
   };
+  // ✅ Find user by ID
+const getUserById = async (userId) => {
+  const query = `SELECT * FROM users WHERE user_id = ?`;
+  const [rows] = await pool.execute(query, [userId]);
+  return rows[0];
+};
+// ✅ Update user profile
+const updateUser = async (userId, { username, bio, profile_image }) => {
+  const query = `
+    UPDATE users SET username = ?, bio = ?, profile_image = ? WHERE user_id = ?
+  `;
+  const [result] = await pool.execute(query, [username, bio, profile_image, userId]);
+  return result;
+};
+
+// ✅ Delete user account
+const deleteUser = async (userId) => {
+  const query = `DELETE FROM users WHERE user_id = ?`;
+  const [result] = await pool.execute(query, [userId]);
+  return result;
+};
 
 module.exports = {
   createUser,
   getUserByEmail,
-  verifyUser
+  verifyUser,
+  getUserById,
+  updateUser,
+  deleteUser
 };
