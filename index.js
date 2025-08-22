@@ -66,6 +66,9 @@ app.use("/api/v1/auth", authRouter);
 const userRoutes = require("./src/routes/userRoutes");
 app.use("/api/users", userRoutes);
 
+const profileRoutes = require('./src/routes/profileRoutes');
+app.use('/api', profileRoutes);
+
 
 // ✅ Health check route
 app.get("/api/v1/health", (req, res) => {
